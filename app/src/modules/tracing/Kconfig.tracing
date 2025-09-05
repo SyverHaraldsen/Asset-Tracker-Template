@@ -1,0 +1,64 @@
+menu "tracing development"
+
+config TRACE_ZBUS
+	bool "Enable ZBUS tracing"
+	default n
+	help 
+	  Enable systemView tracing for ZBUS events.
+
+if TRACE_ZBUS
+
+config TRACE_ZBUS_BUTTON
+	bool "Enable BUTTON channel tracing"
+	default y
+	help
+	  Enable tracing for BUTTON channel events.
+
+config TRACE_ZBUS_CLOUD
+	bool "Enable CLOUD channel tracing"
+	default y
+	help
+	  Enable tracing for CLOUD channel events.
+
+config TRACE_ZBUS_ENVIRONMENTAL
+	bool "Enable ENVIRONMENTAL channel tracing"
+	depends on APP_ENVIRONMENTAL
+	default y
+	help
+	  Enable tracing for ENVIRONMENTAL channel events.
+
+config TRACE_ZBUS_FOTA
+	bool "Enable FOTA channel tracing"
+	default y
+	help
+	  Enable tracing for FOTA channel events.
+
+config TRACE_ZBUS_LED
+	bool "Enable LED channel tracing"
+	depends on APP_LED
+	default y
+	help
+	  Enable tracing for LED channel events.
+
+config TRACE_ZBUS_LOCATION
+	bool "Enable LOCATION channel tracing"
+	default y
+	help
+	  Enable tracing for LOCATION channel events.
+
+config TRACE_ZBUS_NETWORK
+	bool "Enable NETWORK channel tracing"
+	default y
+	help
+	  Enable tracing for NETWORK channel events.
+
+config TRACE_ZBUS_POWER
+	bool "Enable POWER channel tracing"
+	depends on APP_POWER
+	default y
+	help
+	  Enable tracing for POWER channel events.
+
+endif # TRACE_ZBUS
+
+endmenu

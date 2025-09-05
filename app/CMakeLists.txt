@@ -21,6 +21,7 @@ target_sources(app PRIVATE src/main.c)
 add_subdirectory(src/modules/network)
 add_subdirectory(src/modules/button)
 add_subdirectory(src/cbor)
+add_subdirectory(src/modules/tracing)
 
 # Optional modules
 add_subdirectory_ifdef(CONFIG_APP_POWER src/modules/power)
