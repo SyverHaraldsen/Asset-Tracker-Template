@@ -23,6 +23,9 @@
 #include "storage.h"
 #include "cbor_helper.h"
 
+/* Register log module */
+LOG_MODULE_REGISTER(main, 4);
+
 #if IS_ENABLED(CONFIG_MDM_CHANNELS)
 
 #include <zephyr/zbus/multidomain/zbus_multidomain.h>
@@ -35,6 +38,60 @@ ZBUS_PROXY_AGENT_DEFINE(uart_proxy, ZBUS_MULTIDOMAIN_TYPE_UART, ZBUS_UART_NODE);
 /* Add LED_CHAN to forwarded chanels*/
 ZBUS_PROXY_ADD_CHANNEL(uart_proxy, LED_CHAN);
 #endif /* CONFIG_MDM_LED */
+
+#if IS_ENABLED(CONFIG_MDM_BLE)
+#include "../../multi-domain-modules/modules/BLE/shared_zbus_defenition.h"
+/* BLE_CHAN is received only, dont need to add to proxy*/
+
+/* REMOVE: temporary BLE_CHAN listener to verify mdm ble messages*/
+/* Add a message subscriber to the BLE_CHAN channel to log received messages */
+ZBUS_MSG_SUBSCRIBER_DEFINE(test_msg_subscriber);
+ZBUS_CHAN_ADD_OBS(BLE_CHAN, test_msg_subscriber, 0);
+
+#define BLE_MAX_PRINT_LEN 256
+
+static void test_subscriber_thread(void *unused1, void *unused2, void *unused3)
+{
+	ARG_UNUSED(unused1);
+	ARG_UNUSED(unused2);
+	ARG_UNUSED(unused3);
+
+	const struct zbus_channel *chan;
+	struct ble_module_message msg;
+
+	while (true) {
+		if (zbus_sub_wait_msg(&test_msg_subscriber, &chan, &msg, K_FOREVER) == 0) {
+			if (chan == &BLE_CHAN) {
+				LOG_INF("=== ZBUS Message Received ===");
+				LOG_INF("Timestamp: %u ms", msg.timestamp);
+				LOG_INF("Length: %u bytes", msg.len);
+
+				/* Try to print as string if printable */
+				bool printable = true;
+				for (uint16_t i = 0; i < msg.len; i++) {
+					if (msg.data[i] < 0x20 && msg.data[i] != '\r' &&
+					    msg.data[i] != '\n' && msg.data[i] != '\t') {
+						printable = false;
+						break;
+					}
+				}
+
+				if (printable && msg.len < BLE_MAX_PRINT_LEN) {
+					char str_buf[BLE_MAX_PRINT_LEN];
+					memcpy(str_buf, msg.data, msg.len);
+					str_buf[msg.len] = '\0';
+					LOG_INF("As String: \"%s\"", str_buf);
+				}
+				LOG_INF("=============================");
+			}
+		}
+	}
+}
+
+K_THREAD_DEFINE(test_subscriber_tid, 1024, test_subscriber_thread,
+		NULL, NULL, NULL, 7, 0, 0);
+
+#endif /* CONFIG_MDM_BLE */
 
 #endif /* CONFIG_MDM_CHANNELS */
 
@@ -50,9 +107,6 @@ ZBUS_PROXY_ADD_CHANNEL(uart_proxy, LED_CHAN);
 #if defined(CONFIG_APP_POWER)
 #include "power.h"
 #endif /* CONFIG_APP_POWER */
-
-/* Register log module */
-LOG_MODULE_REGISTER(main, 4);
 
 /* Configuration constants to replace magic numbers */
 #define ZBUS_PUBLISH_TIMEOUT_MS		100

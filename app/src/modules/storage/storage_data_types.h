@@ -23,6 +23,9 @@
 #if IS_ENABLED(CONFIG_APP_LOCATION)
 #include "location.h"
 #endif
+#if IS_ENABLED(CONFIG_MDM_BLE)
+#include "../../multi-domain-modules/modules/BLE/shared_zbus.h"
+#endif
 
 /**
  * @brief List of data sources that can be stored by the storage module
@@ -71,8 +74,12 @@
 	IF_ENABLED(CONFIG_APP_LOCATION,								\
 		   (X(LOCATION, LOCATION_CHAN, struct location_msg,				\
 		      struct location_msg, location_check, location_extract)))			\
-		   X(NETWORK, NETWORK_CHAN, struct network_msg,				\
-		      struct network_msg, network_check, network_extract)
+	IF_ENABLED(CONFIG_APP_NETWORK,								\
+		   (X(NETWORK, NETWORK_CHAN, struct network_msg,				\
+		      struct network_msg, network_check, network_extract)))                     \
+        IF_ENABLED(CONFIG_MDM_BLE,                                                              \
+                   (X(BLE, BLE_CHAN, struct ble_module_message, struct ble_module_message,      \
+                      ble_check, ble_extract)))
 
 #define STORAGE_DATA_TYPE(_name)								\
 	STORAGE_TYPE_ ## _name
