@@ -23,6 +23,22 @@
 #include "storage.h"
 #include "cbor_helper.h"
 
+#if IS_ENABLED(CONFIG_MDM_CHANNELS)
+
+#include <zephyr/zbus/multidomain/zbus_multidomain.h>
+
+#define ZBUS_UART_NODE DT_ALIAS(zbus_uart)
+ZBUS_PROXY_AGENT_DEFINE(uart_proxy, ZBUS_MULTIDOMAIN_TYPE_UART, ZBUS_UART_NODE);
+
+#if IS_ENABLED(CONFIG_MDM_LED)
+#include "../../multi-domain-modules/modules/led/shared_zbus.h"
+/* Add LED_CHAN to forwarded chanels*/
+ZBUS_PROXY_ADD_CHANNEL(uart_proxy, LED_CHAN);
+#endif /* CONFIG_MDM_LED */
+
+#endif /* CONFIG_MDM_CHANNELS */
+
+
 #if defined(CONFIG_APP_LED)
 #include "led.h"
 #endif /* CONFIG_APP_LED */
@@ -459,7 +475,7 @@ static void sampling_begin_common(struct main_state *state_object)
 		return;
 	}
 
-#if defined(CONFIG_APP_LED)
+#if (defined(CONFIG_APP_LED) || defined(CONFIG_MDM_LED))
 	struct led_msg led_msg = {
 		.type = LED_RGB_SET,
 		.red = 0,
@@ -479,7 +495,7 @@ static void sampling_begin_common(struct main_state *state_object)
 	}
 
 	LOG_ERR("LED pattern published");
-#endif /* CONFIG_APP_LED */
+#endif /* CONFIG_APP_LED || CONFIG_MDM_LED */
 
 	state_object->sample_start_time = k_uptime_seconds();
 
@@ -511,7 +527,7 @@ static void waiting_entry_common(const struct main_state *state_object)
 	LOG_DBG("Next trigger in %d seconds", time_remaining);
 	timer_sample_start(time_remaining);
 
-#if defined(CONFIG_APP_LED)
+#if (defined(CONFIG_APP_LED) || defined(CONFIG_MDM_LED))
 	int err;
 	struct led_msg led_msg = {
 		.type = LED_RGB_SET,
@@ -530,7 +546,7 @@ static void waiting_entry_common(const struct main_state *state_object)
 
 		return;
 	}
-#endif /* CONFIG_APP_LED */
+#endif /* CONFIG_APP_LED || CONFIG_MDM_LED */
 }
 
 static void waiting_exit_common(void)
@@ -841,7 +857,7 @@ static void buffer_disconnected_entry(void *o)
 
 	state_object->running_history = STATE_BUFFER_DISCONNECTED;
 
-#if defined(CONFIG_APP_LED)
+#if (defined(CONFIG_APP_LED) || defined(CONFIG_MDM_LED))
 	int err;
 	struct led_msg led_msg = {
 		.type = LED_RGB_SET,
@@ -860,7 +876,7 @@ static void buffer_disconnected_entry(void *o)
 
 		return;
 	}
-#endif /* CONFIG_APP_LED */
+#endif /* CONFIG_APP_LED || CONFIG_MDM_LED */
 }
 
 static enum smf_state_result buffer_disconnected_run(void *o)
@@ -1226,8 +1242,7 @@ static void passthrough_disconnected_entry(void *o)
 	/* Stop any running sampling timers when disconnecting in passthrough mode */
 	timer_sample_stop();
 
-#if defined(CONFIG_APP_LED)
-	int err;
+#if (defined(CONFIG_APP_LED) || defined(CONFIG_MDM_LED))
 	struct led_msg led_msg = {
 		.type = LED_RGB_SET,
 		.red = 150,
@@ -1245,7 +1260,7 @@ static void passthrough_disconnected_entry(void *o)
 
 		return;
 	}
-#endif /* CONFIG_APP_LED */
+#endif /* CONFIG_APP_LED || CONFIG_MDM_LED */
 }
 
 static enum smf_state_result passthrough_disconnected_run(void *o)
@@ -1321,7 +1336,7 @@ static void passthrough_connected_sampling_entry(void *o)
 	state_object->running_history = STATE_PASSTHROUGH_CONNECTED_SAMPLING;
 	state_object->sample_start_time = k_uptime_seconds();
 
-#if defined(CONFIG_APP_LED)
+#if (defined(CONFIG_APP_LED) || defined(CONFIG_MDM_LED))
 	struct led_msg led_msg = {
 		.type = LED_RGB_SET,
 		.red = 0,
@@ -1339,7 +1354,7 @@ static void passthrough_connected_sampling_entry(void *o)
 
 		return;
 	}
-#endif /* CONFIG_APP_LED */
+#endif /* CONFIG_APP_LED || CONFIG_MDM_LED */
 
 	err = zbus_chan_pub(&LOCATION_CHAN, &location_msg, K_MSEC(ZBUS_PUBLISH_TIMEOUT_MS));
 	if (err) {
@@ -1393,7 +1408,7 @@ static void passthrough_connected_waiting_entry(void *o)
 	LOG_DBG("Passthrough mode: next trigger in %d seconds", time_remaining);
 	timer_sample_start(time_remaining);
 
-#if defined(CONFIG_APP_LED)
+#if (defined(CONFIG_APP_LED) || defined(CONFIG_MDM_LED))
 	int err;
 	struct led_msg led_msg = {
 		.type = LED_RGB_SET,
@@ -1412,7 +1427,7 @@ static void passthrough_connected_waiting_entry(void *o)
 
 		return;
 	}
-#endif /* CONFIG_APP_LED */
+#endif /* CONFIG_APP_LED || CONFIG_MDM_LED */
 }
 
 static enum smf_state_result passthrough_connected_waiting_run(void *o)
@@ -1540,7 +1555,7 @@ static void fota_downloading_entry(void *o)
 
 	LOG_DBG("%s", __func__);
 
-#if defined(CONFIG_APP_LED)
+#if (defined(CONFIG_APP_LED) || defined(CONFIG_MDM_LED))
 	int err;
 	/* Purple pattern during download - indefinite for ongoing process */
 	struct led_msg led_msg = {
@@ -1560,7 +1575,7 @@ static void fota_downloading_entry(void *o)
 
 		return;
 	}
-#endif /* CONFIG_APP_LED */
+#endif /* CONFIG_APP_LED || CONFIG_MDM_LED */
 }
 
 static enum smf_state_result fota_downloading_run(void *o)

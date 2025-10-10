@@ -7,12 +7,13 @@
 / {
 	/* Configure partition manager to use gd25wb256 as the external flash */
 	chosen {
-		nordic,modem-trace-uart = &uart1;
+		// nordic,modem-trace-uart = &uart1;
 		nordic,pm-ext-flash = &gd25wb256;
 	};
 
 	aliases {
 		ext-flash = &gd25wb256;
+		zbus-uart = &uart1;
 	};
 };
 

@@ -9,6 +9,10 @@ manifest:
   remotes:
     - name: ncs
       url-base: https://github.com/nrfconnect
+    - name: MDZM
+      url-base: https://github.com/SyverHaraldsen
+
+  group-filter: [-multi-domain-modules]
 
   projects:
     - name: nrf
@@ -16,3 +20,11 @@ manifest:
       repo-path: sdk-nrf
       revision: 810b478aacde5d612130c32c9f0be52ca49aee2a
       import: true
+    - name: Multi-Domain-ZBus-Modules
+      remote: MDZM
+      repo-path: Multi-Domain-ZBus-Modules
+      path: project/multi-domain-modules
+      revision: main
+      import: false
+      groups:
+        - multi-domain-modules
