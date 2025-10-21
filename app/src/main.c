@@ -34,19 +34,17 @@ LOG_MODULE_REGISTER(main, 4);
 ZBUS_PROXY_AGENT_DEFINE(uart_proxy, ZBUS_MULTIDOMAIN_TYPE_UART, ZBUS_UART_NODE);
 
 #if IS_ENABLED(CONFIG_MDM_LED)
-#include "../../multi-domain-modules/modules/led/shared_zbus.h"
+#include "../../multi-domain-modules/modules/led/shared_zbus_definition.h"
 /* Add LED_CHAN to forwarded chanels*/
 ZBUS_PROXY_ADD_CHANNEL(uart_proxy, LED_CHAN);
 #endif /* CONFIG_MDM_LED */
 
-#if IS_ENABLED(CONFIG_MDM_BLE)
-#include "../../multi-domain-modules/modules/BLE/shared_zbus_defenition.h"
-/* BLE_CHAN is received only, dont need to add to proxy*/
+#if IS_ENABLED(CONFIG_MDM_BLE_NUS)
+#include "../../multi-domain-modules/modules/ble_nus/shared_zbus_definition.h"
+/* BLE_NUS_CHAN is received only, no need to add to proxy*/
 
-/* REMOVE: temporary BLE_CHAN listener to verify mdm ble messages*/
-/* Add a message subscriber to the BLE_CHAN channel to log received messages */
 ZBUS_MSG_SUBSCRIBER_DEFINE(test_msg_subscriber);
-ZBUS_CHAN_ADD_OBS(BLE_CHAN, test_msg_subscriber, 0);
+ZBUS_CHAN_ADD_OBS(BLE_NUS_CHAN, test_msg_subscriber, 0);
 
 #define BLE_MAX_PRINT_LEN 256
 
@@ -57,11 +55,11 @@ static void test_subscriber_thread(void *unused1, void *unused2, void *unused3)
 	ARG_UNUSED(unused3);
 
 	const struct zbus_channel *chan;
-	struct ble_module_message msg;
+	struct ble_nus_module_message msg;
 
 	while (true) {
 		if (zbus_sub_wait_msg(&test_msg_subscriber, &chan, &msg, K_FOREVER) == 0) {
-			if (chan == &BLE_CHAN) {
+			if (chan == &BLE_NUS_CHAN) {
 				LOG_INF("=== ZBUS Message Received ===");
 				LOG_INF("Timestamp: %u ms", msg.timestamp);
 				LOG_INF("Length: %u bytes", msg.len);
@@ -91,7 +89,11 @@ static void test_subscriber_thread(void *unused1, void *unused2, void *unused3)
 K_THREAD_DEFINE(test_subscriber_tid, 1024, test_subscriber_thread,
 		NULL, NULL, NULL, 7, 0, 0);
 
-#endif /* CONFIG_MDM_BLE */
+#endif /* CONFIG_MDM_BLE_NUS */
+
+#if IS_ENABLED(CONFIG_MDM_CHANNEL_SOUNDING)
+#include "../../multi-domain-modules/modules/channel_sounding/shared_zbus_definition.h"
+#endif /* CONFIG_MDM_CHANNEL_SOUNDING */
 
 #endif /* CONFIG_MDM_CHANNELS */
 
@@ -1297,6 +1299,8 @@ static void passthrough_disconnected_entry(void *o)
 	timer_sample_stop();
 
 #if (defined(CONFIG_APP_LED) || defined(CONFIG_MDM_LED))
+	int err;
+
 	struct led_msg led_msg = {
 		.type = LED_RGB_SET,
 		.red = 150,

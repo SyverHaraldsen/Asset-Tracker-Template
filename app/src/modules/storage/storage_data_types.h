@@ -23,8 +23,11 @@
 #if IS_ENABLED(CONFIG_APP_LOCATION)
 #include "location.h"
 #endif
-#if IS_ENABLED(CONFIG_MDM_BLE)
-#include "../../multi-domain-modules/modules/BLE/shared_zbus.h"
+#if IS_ENABLED(CONFIG_MDM_CHANNEL_SOUNDING)
+#include "../../multi-domain-modules/modules/channel_sounding/shared_zbus.h"
+#endif
+#if IS_ENABLED(CONFIG_MDM_BLE_NUS)
+#include "../../multi-domain-modules/modules/ble_nus/shared_zbus.h"
 #endif
 
 /**
@@ -77,9 +80,12 @@
 	IF_ENABLED(CONFIG_APP_NETWORK,								\
 		   (X(NETWORK, NETWORK_CHAN, struct network_msg,				\
 		      struct network_msg, network_check, network_extract)))                     \
-        IF_ENABLED(CONFIG_MDM_BLE,                                                              \
-                   (X(BLE, BLE_CHAN, struct ble_module_message, struct ble_module_message,      \
-                      ble_check, ble_extract)))
+        IF_ENABLED(CONFIG_MDM_BLE_NUS,                                                          \
+                   (X(BLE_NUS, BLE_NUS_CHAN, struct ble_nus_module_message,      		\
+		      struct ble_nus_module_message, ble_nus_check, ble_nus_extract)))		\
+	IF_ENABLED(CONFIG_MDM_CHANNEL_SOUNDING,							\
+		   (X(CHANNEL_SOUNDING, CS_DISTANCE_CHAN, struct cs_distance_msg,		\
+		      struct cs_distance_msg, cs_distance_check, cs_distance_extract)))		\
 
 #define STORAGE_DATA_TYPE(_name)								\
 	STORAGE_TYPE_ ## _name

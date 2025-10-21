@@ -27,8 +27,12 @@
 #include "network.h"
 #endif
 
-#if IS_ENABLED(CONFIG_MDM_BLE)
-#include "../../multi-domain-modules/modules/BLE/shared_zbus.h"
+#if IS_ENABLED(CONFIG_MDM_BLE_NUS)
+#include "../../multi-domain-modules/modules/ble_nus/shared_zbus.h"
+#endif
+
+#if IS_ENABLED(CONFIG_MDM_CHANNEL_SOUNDING)
+#include "../../multi-domain-modules/modules/channel_sounding/shared_zbus.h"
 #endif
 
 /**
@@ -118,15 +122,26 @@ void network_extract(const struct network_msg *msg, struct network_msg *data)
 }
 #endif /* CONFIG_APP_NETWORK */
 
-#if IS_ENABLED(CONFIG_MDM_BLE)
-bool ble_check(const struct ble_module_message *msg)
+#if IS_ENABLED(CONFIG_MDM_BLE_NUS)
+bool ble_nus_check(const struct ble_nus_module_message *msg)
 {
         return msg->type == BLE_RECV;
 }
 
-void ble_extract(const struct ble_module_message *msg, struct ble_module_message *data)
+void ble_nus_extract(const struct ble_nus_module_message *msg, struct ble_nus_module_message *data)
 {
         *data = *msg;
 }
-
 #endif
+
+#if IS_ENABLED(CONFIG_MDM_CHANNEL_SOUNDING)
+bool cs_distance_check(const struct cs_distance_msg *msg)
+{
+        return msg->type == CS_DISTANCE_MEASUREMENT;
+}
+
+void cs_distance_extract(const struct cs_distance_msg *msg, struct cs_distance_msg *data)
+{
+        *data = *msg;
+}
+#endif /* CONFIG_MDM_CHANNEL_SOUNDING */

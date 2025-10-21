@@ -39,7 +39,8 @@ LOG_MODULE_REGISTER(cloud, CONFIG_APP_CLOUD_LOG_LEVEL);
 
 #define CUSTOM_JSON_APPID_VAL_CONEVAL "CONEVAL"
 #define CUSTOM_JSON_APPID_VAL_BATTERY "BATTERY"
-#define CUSTOM_JSON_APPID_VAL_BLE     "BLE"
+#define CUSTOM_JSON_APPID_VAL_BLE_NUS     "BLE NUS"
+#define CUSTOM_JSON_APPID_VAL_CHANNEL_SOUNDING "CHANNEL_SOUNDING"
 
 #define AGNSS_MAX_DATA_SIZE 3800
 
@@ -436,34 +437,66 @@ static int send_storage_data_to_cloud(const struct storage_data_item *item)
 		return 0;
 	}
 
-#if IS_ENABLED(CONFIG_MDM_BLE)
-        if (item->type == STORAGE_TYPE_BLE) {
+#if IS_ENABLED(CONFIG_MDM_BLE_NUS)
+        if (item->type == STORAGE_TYPE_BLE_NUS) {
                 char message[100] = {0};
 
                 err = snprintf(message, sizeof(message),
-                               "%s", item->data.BLE.data);
+                               "%s", item->data.BLE_NUS.data);
                 if (err < 0 || err >= sizeof(message)) {
-                        LOG_ERR("Failed to create BLE message, error: %d", err);
+                        LOG_ERR("Failed to create BLE NUS message, error: %d", err);
                         SEND_FATAL_ERROR();
                 }
 
-                err = nrf_cloud_coap_message_send(CUSTOM_JSON_APPID_VAL_BLE,
+                err = nrf_cloud_coap_message_send(CUSTOM_JSON_APPID_VAL_BLE_NUS,
                                                   message,
                                                   false,
                                                   timestamp_ms,
                                                   confirmable);
                 if (err == -ENETUNREACH) {
-                        LOG_ERR("Failed to send BLE data to cloud, network unreachable");
+                        LOG_ERR("Failed to send BLE NUS data to cloud, network unreachable");
                         return err;
                 } else if (err) {
-                        LOG_ERR("Failed to send BLE data to cloud, error: %d", err);
+                        LOG_ERR("Failed to send BLE NUS data to cloud, error: %d", err);
                         SEND_FATAL_ERROR();
                         return err;
                 }
 
                 return 0;
         }
-#endif /* CONFIG_MDM_BLE */
+#endif /* CONFIG_MDM_BLE_NUS */
+
+#if IS_ENABLED(CONFIG_MDM_CHANNEL_SOUNDING)
+        if (item->type == STORAGE_TYPE_CHANNEL_SOUNDING) {
+                char message[200] = {0};
+                const struct cs_distance_msg *cs = &item->data.CHANNEL_SOUNDING;
+
+                err = snprintf(message, sizeof(message),
+                               "{\"ifft\":%.2f,\"phase_slope\":%.2f,\"rtt\":%.2f,\"antenna_path\":%d}",
+                               (double)cs->ifft, (double)cs->phase_slope,
+                               (double)cs->rtt, cs->antenna_path);
+                if (err < 0 || err >= sizeof(message)) {
+                        LOG_ERR("Failed to create channel sounding message, error: %d", err);
+                        SEND_FATAL_ERROR();
+                }
+
+                err = nrf_cloud_coap_message_send(CUSTOM_JSON_APPID_VAL_CHANNEL_SOUNDING,
+                                                  message,
+                                                  false,
+                                                  timestamp_ms,
+                                                  confirmable);
+                if (err == -ENETUNREACH) {
+                        LOG_ERR("Failed to send channel sounding data to cloud, network unreachable");
+                        return err;
+                } else if (err) {
+                        LOG_ERR("Failed to send channel sounding data to cloud, error: %d", err);
+                        SEND_FATAL_ERROR();
+                        return err;
+                }
+
+                return 0;
+        }
+#endif /* CONFIG_MDM_CHANNEL_SOUNDING */
 
 	LOG_WRN("Unknown storage data type: %d", item->type);
 
