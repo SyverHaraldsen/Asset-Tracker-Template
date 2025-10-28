@@ -77,9 +77,8 @@
 	IF_ENABLED(CONFIG_APP_LOCATION,								\
 		   (X(LOCATION, LOCATION_CHAN, struct location_msg,				\
 		      struct location_msg, location_check, location_extract)))			\
-	IF_ENABLED(CONFIG_APP_NETWORK,								\
-		   (X(NETWORK, NETWORK_CHAN, struct network_msg,				\
-		      struct network_msg, network_check, network_extract)))                     \
+		   X(NETWORK, NETWORK_CHAN, struct network_msg,				\
+		      struct network_msg, network_check, network_extract)                     \
         IF_ENABLED(CONFIG_MDM_BLE_NUS,                                                          \
                    (X(BLE_NUS, BLE_NUS_CHAN, struct ble_nus_module_message,      		\
 		      struct ble_nus_module_message, ble_nus_check, ble_nus_extract)))		\

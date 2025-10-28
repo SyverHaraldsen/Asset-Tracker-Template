@@ -23,10 +23,6 @@
 #include "location.h"
 #endif
 
-#ifdef CONFIG_APP_NETWORK
-#include "network.h"
-#endif
-
 #if IS_ENABLED(CONFIG_MDM_BLE_NUS)
 #include "../../multi-domain-modules/modules/ble_nus/shared_zbus.h"
 #endif
@@ -108,7 +104,6 @@ void environmental_extract(const struct environmental_msg *msg,
 #endif /* CONFIG_APP_ENVIRONMENTAL */
 
 /* Network module storage */
-#ifdef CONFIG_APP_NETWORK
 
 /* Provide functions used by storage module to check and extract data */
 bool network_check(const struct network_msg *msg)
@@ -120,7 +115,6 @@ void network_extract(const struct network_msg *msg, struct network_msg *data)
 {
 	*data = *msg;
 }
-#endif /* CONFIG_APP_NETWORK */
 
 #if IS_ENABLED(CONFIG_MDM_BLE_NUS)
 bool ble_nus_check(const struct ble_nus_module_message *msg)
