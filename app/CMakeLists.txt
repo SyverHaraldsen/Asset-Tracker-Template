@@ -29,3 +29,7 @@ add_subdirectory_ifdef(CONFIG_APP_LOCATION src/modules/location)
 add_subdirectory_ifdef(CONFIG_APP_CLOUD src/modules/cloud)
 add_subdirectory_ifdef(CONFIG_APP_FOTA src/modules/fota)
 add_subdirectory_ifdef(CONFIG_APP_STORAGE src/modules/storage)
+add_subdirectory_ifdef(CONFIG_APP_DETECTION_HANDLER src/modules/detection_handler)
+
+# External optional modules
+add_subdirectory_ifdef(CONFIG_APP_DETECTION ../../opt-modules/edgeAI edgeAI)

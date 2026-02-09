@@ -17,6 +17,9 @@ rsource "src/modules/environmental/Kconfig.environmental"
 rsource "src/modules/button/Kconfig.button"
 rsource "src/modules/storage/Kconfig.storage"
 
+rsource "../../opt-modules/edgeAI/Kconfig.detection"
+rsource "src/modules/detection_handler/Kconfig.detection_handler"
+
 endmenu
 
 menu "Zephyr Kernel"

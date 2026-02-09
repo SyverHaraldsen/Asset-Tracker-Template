@@ -1,0 +1,19 @@
+#
+# Copyright (c) 2026 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menuconfig APP_DETECTION_HANDLER
+	bool "Detection handler module"
+	default y if APP_DETECTION
+	depends on APP_DETECTION
+	depends on SHELL
+
+if APP_DETECTION_HANDLER
+
+module = APP_DETECTION_HANDLER
+module-str = Detection handler module
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # APP_DETECTION_HANDLER

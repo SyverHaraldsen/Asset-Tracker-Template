@@ -9,6 +9,10 @@ manifest:
   remotes:
     - name: ncs
       url-base: https://github.com/nrfconnect
+    - name: opt-modules
+      url-base: https://github.com/SyverHaraldsen
+
+  group-filter: [-opt]
 
   projects:
     - name: nrf
@@ -16,3 +20,10 @@ manifest:
       repo-path: sdk-nrf
       revision: e3daa6d07317a2e34a8588cd0cda8bb605017bae
       import: true
+    - name: opt-modules
+      remote: opt-modules
+      repo-path: optional_modules
+      revision: main
+      import: false
+      groups:
+        - opt
