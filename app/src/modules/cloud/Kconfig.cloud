@@ -140,6 +140,19 @@ config APP_CLOUD_MSG_PROCESSING_TIMEOUT_SECONDS
 	  Maximum time allowed for processing a single message in the module's state machine.
 	  The value must be smaller than CONFIG_APP_CLOUD_WATCHDOG_TIMEOUT_SECONDS.
 
+config APP_DETECTION_AUTO_START
+	bool "Auto-start detection service when cloud connects"
+	default y
+	depends on APP_DETECTION
+	help
+	  Automatically start the detection service when cloud connection is established.
+
+config APP_CLOUD_MINIMUM_CONFIDENCE_THRESHOLD
+	int "Minimum confidence threshold"
+	default 90
+	help
+	  Minimum confidence threshold for sending detection results to the cloud.
+
 module = APP_CLOUD
 module-str = Cloud
 source "subsys/logging/Kconfig.template.log_config"

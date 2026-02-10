@@ -16,6 +16,7 @@
 #include <zephyr/net/coap.h>
 #include <app_version.h>
 #include <date_time.h>
+#include <stdio.h>
 
 #if defined(CONFIG_MEMFAULT)
 #include <memfault/ports/zephyr/http.h>
@@ -31,6 +32,9 @@
 #ifdef CONFIG_APP_ENVIRONMENTAL
 #include "cloud_environmental.h"
 #endif /* CONFIG_APP_ENVIRONMENTAL */
+#if defined(CONFIG_APP_DETECTION)
+#include "../../opt-modules/edgeAI/detection.h"
+#endif
 #include "app_common.h"
 #include "network.h"
 #include "storage.h"
@@ -40,6 +44,7 @@ LOG_MODULE_REGISTER(cloud, CONFIG_APP_CLOUD_LOG_LEVEL);
 
 #define CUSTOM_JSON_APPID_VAL_CONEVAL "CONEVAL"
 #define CUSTOM_JSON_APPID_VAL_BATTERY "BATTERY"
+#define CUSTOM_JSON_APPID_VAL_DETECTION "DETECTION"
 
 #define AGNSS_MAX_DATA_SIZE 3800
 
@@ -58,15 +63,17 @@ ZBUS_MSG_SUBSCRIBER_DEFINE(cloud_subscriber);
 
 /* Define the channels that the module subscribes to, their associated message types
  * and the subscriber that will receive the messages on the channel.
- * ENVIRONMENTAL_CHAN, POWER_CHAN, and LOCATION_CHAN are optional and are only included if the
- * corresponding module is enabled.
+ * ENVIRONMENTAL_CHAN, POWER_CHAN, LOCATION_CHAN, and DETECTION_CHAN are optional and are only
+ * included if the corresponding module is enabled.
  */
 #define CHANNEL_LIST(X)										\
 					 X(NETWORK_CHAN,	struct network_msg)		\
 					 X(CLOUD_CHAN,		struct cloud_msg)		\
 					 X(STORAGE_CHAN,	struct storage_msg)		\
 					 X(LOCATION_CHAN,	struct location_msg)		\
-					 X(STORAGE_DATA_CHAN,	struct storage_msg)
+					 X(STORAGE_DATA_CHAN,	struct storage_msg)		\
+					 IF_ENABLED(CONFIG_APP_DETECTION,				\
+						    (X(DETECTION_CHAN, struct detection_msg)))
 
 /* Calculate the maximum message size from the list of channels */
 #define MAX_MSG_SIZE			MAX_MSG_SIZE_FROM_LIST(CHANNEL_LIST)
@@ -161,6 +168,11 @@ struct cloud_state_object {
 	/* Connection backoff time */
 	uint32_t backoff_time;
 };
+
+#if defined(CONFIG_APP_DETECTION) && defined(CONFIG_APP_DETECTION_AUTO_START)
+/* Track if we've already auto-started detection */
+static bool detection_auto_started = false;
+#endif
 
 /* Forward declarations of state handlers */
 static void state_running_entry(void *obj);
@@ -451,6 +463,95 @@ static void handle_network_data_message(const struct network_msg *msg)
 		send_request_failed();
 	}
 }
+
+#if defined(CONFIG_APP_DETECTION)
+/* Track last detected class to avoid flooding cloud with duplicate results */
+static uint8_t last_detected_class = UINT8_MAX;
+
+static void handle_detection_message(const struct detection_msg *msg)
+{
+	int err;
+	bool confirmable = IS_ENABLED(CONFIG_APP_CLOUD_CONFIRMABLE_MESSAGES);
+	int64_t timestamp_ms;
+	char json_data[128];
+
+	if (msg->type != DETECTION_RESULT) {
+		return;
+	}
+
+	/* Only send to cloud if the detected class has changed */
+	if (msg->result.predicted_class == last_detected_class) {
+		LOG_DBG("Detection class unchanged (%s), skipping cloud send",
+			detection_class_name(msg->result.predicted_class));
+		return;
+	}
+
+	if ((msg->result.confidence * 100) < CONFIG_APP_CLOUD_MINIMUM_CONFIDENCE_THRESHOLD) {
+		LOG_DBG("Detection confidence below threshold (%d%%), skipping cloud send",
+			(int)(msg->result.confidence * 100));
+		return;
+	}
+
+	/* Update last detected class */
+	last_detected_class = msg->result.predicted_class;
+
+	/* Convert timestamp to unix time */
+	timestamp_ms = msg->timestamp;
+
+	err = handle_data_timestamp(&timestamp_ms);
+	if (err) {
+		return;
+	}
+
+	/* Format JSON with classification name and probability as percentage */
+	int probability_pct = (int)(msg->result.confidence * 100);
+	snprintf(json_data, sizeof(json_data),
+		 "{\"classification\":\"%s\",\"probability\":%d}",
+		 detection_class_name(msg->result.predicted_class),
+		 probability_pct);
+
+	err = nrf_cloud_coap_message_send(CUSTOM_JSON_APPID_VAL_DETECTION,
+					  json_data,
+					  false,
+					  timestamp_ms,
+					  confirmable);
+	if (err) {
+		LOG_ERR("Failed to send detection data to cloud, error: %d", err);
+		send_request_failed();
+		return;
+	}
+
+	LOG_DBG("Detection sent to cloud: %s (%.1f%%)",
+		detection_class_name(msg->result.predicted_class),
+		(double)(msg->result.confidence * 100.0f));
+}
+
+#if defined(CONFIG_APP_DETECTION_AUTO_START)
+static void trigger_detection_start(void)
+{
+	int err;
+	struct detection_msg msg = {
+		.type = DETECTION_START,
+		.timestamp = k_uptime_get(),
+	};
+
+	if (detection_auto_started) {
+		/* Already started, don't send again */
+		return;
+	}
+
+	LOG_INF("Cloud connected - sending DETECTION_START command");
+
+	err = zbus_chan_pub(&DETECTION_CHAN, &msg, K_SECONDS(1));
+	if (err) {
+		LOG_ERR("Failed to send DETECTION_START, error: %d", err);
+		return;
+	}
+
+	detection_auto_started = true;
+}
+#endif /* CONFIG_APP_DETECTION_AUTO_START */
+#endif /* CONFIG_APP_DETECTION */
 
 /* Storage handling functions */
 
@@ -1091,6 +1192,11 @@ static void state_connected_ready_entry(void *obj)
 
 		return;
 	}
+
+#if defined(CONFIG_APP_DETECTION) && defined(CONFIG_APP_DETECTION_AUTO_START)
+	/* Auto-start detection when cloud is ready */
+	trigger_detection_start();
+#endif
 }
 
 static enum smf_state_result state_connected_ready_run(void *obj)
@@ -1150,6 +1256,34 @@ static enum smf_state_result state_connected_ready_run(void *obj)
 		return SMF_EVENT_HANDLED;
 	}
 #endif /* CONFIG_APP_LOCATION */
+
+#if defined(CONFIG_APP_DETECTION)
+	if (state_object->chan == &DETECTION_CHAN) {
+		const struct detection_msg *msg = (const struct detection_msg *)state_object->msg_buf;
+
+		switch (msg->type) {
+		case DETECTION_RESULT:
+			LOG_DBG("Detection result received, sending to cloud");
+			handle_detection_message(msg);
+			break;
+
+		case DETECTION_STARTED:
+			LOG_INF("Detection service started");
+			break;
+
+		case DETECTION_STOPPED:
+			LOG_INF("Detection service stopped");
+			detection_auto_started = false; /* Allow restart on reconnect */
+			last_detected_class = UINT8_MAX; /* Reset for next session */
+			break;
+
+		default:
+			break;
+		}
+
+		return SMF_EVENT_HANDLED;
+	}
+#endif /* CONFIG_APP_DETECTION */
 
 	return SMF_EVENT_PROPAGATE;
 }
