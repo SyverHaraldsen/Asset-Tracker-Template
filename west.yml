@@ -9,10 +9,17 @@ manifest:
   remotes:
     - name: ncs
       url-base: https://github.com/nrfconnect
+    - name: syver
+      url-base: https://github.com/SyverHaraldsen
 
   projects:
     - name: nrf
-      remote: ncs
+      remote: syver
       repo-path: sdk-nrf
-      revision: v3.3.0-rc2
+      revision: compressed-fota-t91x-partition-changes
       import: true
+    - name: mcuboot
+      remote: syver
+      repo-path: sdk-mcuboot
+      revision: bl-two-image-patch
+      path: bootloader/mcuboot

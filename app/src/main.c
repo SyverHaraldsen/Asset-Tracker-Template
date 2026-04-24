@@ -1789,6 +1789,7 @@ int main(void)
 	main_state.first_sample_pending = true;
 
 	LOG_DBG("Main has started");
+	LOG_ERR("Image compressed");
 
 	task_wdt_id = task_wdt_add(wdt_timeout_ms, task_wdt_callback, (void *)k_current_get());
 	if (task_wdt_id < 0) {
