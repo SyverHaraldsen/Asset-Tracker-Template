@@ -1,18 +1,17 @@
 # Copyright (c) 2024 Nordic Semiconductor
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
-
 manifest:
   self:
     west-commands: scripts/west-commands.yml
     path: project
-
   remotes:
     - name: ncs
       url-base: https://github.com/nrfconnect
-
+    - name: syver
+      url-base: https://github.com/SyverHaraldsen
   projects:
     - name: nrf
-      remote: ncs
+      remote: syver
       repo-path: sdk-nrf
-      revision: v3.3.0
+      revision: pre-cryptocell-with-dts
       import: true

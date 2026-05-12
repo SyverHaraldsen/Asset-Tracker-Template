@@ -14,6 +14,7 @@
 	chosen {
 		nordic,modem-trace-uart = &uart1;
 		zephyr,wifi = &nordic_wlan0;
+		fmfu_storage = &fmfu_storage_partition;
 	};
 };
 
@@ -34,7 +35,7 @@
 		lfs1: lfs1 {
 			compatible = "zephyr,fstab,littlefs";
 			mount-point = "/att_storage";
-			partition = <&littlefs_storage>;  /* Reference PM partition */
+			partition = <&littlefs_storage>;
 			automount;
 			read-size = <16>;
 			prog-size = <16>;
@@ -45,16 +46,16 @@
 	};
 };
 
+/delete-node/ &external_flash_partition;
 &flash_ext {
-	/* Partitions will be overridden by PM but needed for DTS parsing */
-	partitions {
-		compatible = "fixed-partitions";
-		#address-cells = <1>;
-		#size-cells = <1>;
+    partitions {
+        compatible = "fixed-partitions";
+        #address-cells = <1>;
+        #size-cells = <1>;
 
-		littlefs_storage: partition@0 {
-			label = "littlefs_storage";
-			reg = <0x00000000 0x00100000>;
-		};
-	};
+        littlefs_storage: partition@4d2000 {
+            label = "littlefs_storage";
+            reg = <0x004d2000 0x100000>;       /* 1 MB — adjust as needed */
+        };
+    };
 };
